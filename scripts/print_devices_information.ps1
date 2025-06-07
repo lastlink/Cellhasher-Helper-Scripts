@@ -13,7 +13,7 @@ foreach ($device in $devices) {
     $serial = adb -s $device shell getprop ro.serialno
     $usbNumber = [int]$labels[$serial]."Usb #"
     $tags = $labels[$serial]."Tags"
-    $serial = adb -s $device shell getprop ro.serialno
+    $imei = adb -s $device shell "service call iphonesubinfo 1 s16 com.android.shell | cut -c 50-64 | tr -d '.[:space:]'"
     $name = adb -s $device shell getprop ro.product.model
 
     $deviceIps = adb -s $device shell ip -o a
@@ -28,8 +28,8 @@ foreach ($device in $devices) {
     $filteredIPs = $ipAddresses | Where-Object { $_ -match "^(192\.|10\.)" } | Out-String
     $filteredIPs = $filteredIPs -replace "`r`n", " " -replace "`n", " " -replace "`r", " "
 
-    $devicesList += [PSCustomObject]@{ "Usb #" = $usbNumber; "Device" = "scrcpy -s $device"; "Label" = "$name"; "Tags" = "$tags"; "SerialNumber" = "$serial"; "Ip" = "$filteredIPs" }
-    Write-Host "# $usbNumber | Device: $device | Name $name | Serial Number: $serial"
+    $devicesList += [PSCustomObject]@{ "Usb #" = $usbNumber; "Device" = "scrcpy -s $device"; "Label" = "$name"; "Tags" = "$tags"; "SerialNumber" = "$serial"; "IMEI" = "$imei"; "Ip" = "$filteredIPs" }
+    Write-Host "# $usbNumber | Device: $device | Name $name | Serial Number: $serial | IMEI: $imei"
 }
 
 # Find missing devices from CSV
@@ -42,6 +42,7 @@ foreach ($missing in $missingDevices) {
         "Label" = $missing.Label
         "Tags" = $missing.Tags
         "SerialNumber" = $missing.SerialNumber
+        "IMEI" = $missing.Imei
         "Ip" = "N/A"
     }
 }
