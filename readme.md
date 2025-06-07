@@ -28,3 +28,6 @@
 * enable_adb_wireless - in usb adb turn on adb wireless for all devices, resets on device reboot
 * scan_adb_debug_port - scan ports to connect to devices that have adb wireless mode enabled and have network access
 * install_bulk_apk - bulk install apks in a specific folder
+* uninstall_apps - bulk uninstall from all connected devices from txt file. Note system apps can't be uninstalled
+* disable_packages - disable system apps that could not be removed
+- mute_devices - mute all devices, doesn't work as expected. best case is to log in and go into settings > sounds and drag turn off all volume settings.
