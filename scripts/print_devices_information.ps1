@@ -12,9 +12,61 @@ $devicesList = @()
 foreach ($device in $devices) {
     $serial = adb -s $device shell getprop ro.serialno
     $usbNumber = [int]$labels[$serial]."Usb #"
+    $cpuDetails = $labels[$serial]."CPU"
+    $maxCpuSpeedGHz = $labels[$serial]."Max CPU Speed"
+    $cpuCores = $labels[$serial]."CPU Cores"
+    $chipsetLookup = $labels[$serial]."CPU Lookup"
+    $gpuName = $labels[$serial]."GPU"
     $tags = $labels[$serial]."Tags"
-    $imei = adb -s $device shell "service call iphonesubinfo 1 s16 com.android.shell | cut -c 50-64 | tr -d '.[:space:]'"
-    $name = adb -s $device shell getprop ro.product.model
+    $imei = $labels[$serial]."IMEI"
+    $name = $labels[$serial]."Label"
+    if (-not $imei) {
+        $imei = adb -s $device shell "service call iphonesubinfo 1 s16 com.android.shell | cut -c 50-64 | tr -d '.[:space:]'"
+        $imei = $imei.ToString()
+        $imei = -join ($imei -split '(?<=\G.{4})' -join '-')
+    }
+    if (-not $name) {
+        $name = adb -s $device shell getprop ro.product.model
+    }
+    if (-not $cpuDetails) {
+        $chipset = adb -s $device shell "getprop ro.board.platform"
+
+        $chipsetLookup = "https://phonedb.net/index.php?m=processor&s=query&d=detailed_specs&codename=$chipset#result"
+    
+        # Get CPU (SoC) name
+        $cpuName = adb -s $device shell "getprop ro.hardware.chipname"
+        if (-not $cpuName) {
+            $cpuName = adb -s $device shell "cat /proc/cpuinfo | grep Hardware"
+        }
+
+        # Method 2: Extract from /proc/cpuinfo
+        if (-not $cpuName) {
+            $cpuName = adb -s $device shell "cat /proc/cpuinfo | grep Hardware"
+        }
+    
+        # Method 3: Check /sys/devices/soc0 (for Qualcomm devices)
+        if (-not $cpuName) {
+            $cpuName = adb -s $device shell "cat /sys/devices/soc0/family"
+        }
+        $socRevision = adb -s $device shell "cat /sys/devices/soc0/revision"
+
+        $cpuDetails = "$cpuName ($chipset) rv:$socRevision"
+
+        # Get number of CPU cores
+        $cpuCores = adb -s $device shell "cat /sys/devices/system/cpu/possible"
+        # Get GPU name (for Qualcomm devices)
+        $gpuName = adb -s $device shell "cat /sys/class/kgsl/kgsl-3d0/gpu_model"
+    }
+
+    # Get current CPU speed (Core 0)
+    $cpuSpeedKHz = adb -s $device shell "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq"
+    $cpuSpeedGHz = "$([math]::Round($cpuSpeedKHz / 1000000, 2)) GHz"
+
+    if (-not $maxCpuSpeedGHz) {
+        # # Get max CPU speed
+        $maxCpuSpeedKHz = adb -s $device shell "cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq"
+        $maxCpuSpeedGHz = "$([math]::Round($maxCpuSpeedKHz / 1000000, 2)) GHz"
+    }
 
     $deviceIps = adb -s $device shell ip -o a
 
@@ -27,23 +79,31 @@ foreach ($device in $devices) {
 
     $filteredIPs = $ipAddresses | Where-Object { $_ -match "^(192\.|10\.)" } | Out-String
     $filteredIPs = $filteredIPs -replace "`r`n", " " -replace "`n", " " -replace "`r", " "
+    $filteredIPs = $filteredIPs.Trim()
 
-    $devicesList += [PSCustomObject]@{ "Usb #" = $usbNumber; "Device" = "scrcpy -s $device"; "Label" = "$name"; "Tags" = "$tags"; "SerialNumber" = "$serial"; "IMEI" = "$imei"; "Ip" = "$filteredIPs" }
+    $devicesList += [PSCustomObject]@{ "Usb #" = $usbNumber; "Device" = "scrcpy -s $device"; "Label" = "$name"; "Tags" = "$tags"; "SerialNumber" = "$serial"; "IMEI" = "$imei"; "Ip" = "$filteredIPs"; "CPU" = "$cpuDetails"; "CPU Speed" = "$cpuSpeedGHz"; "Max CPU Speed" = "$maxCpuSpeedGHz"; "CPU Cores" = "$cpuCores"; "CPU Lookup" = "$chipsetLookup"; "GPU" = "$gpuName" }
     Write-Host "# $usbNumber | Device: $device | Name $name | Serial Number: $serial | IMEI: $imei"
 }
 
 # Find missing devices from CSV
-$missingDevices = $devicesList | Where-Object { $_.SerialNumber -notin $labels.Keys }
+$missingDevices = $labels.Keys | Where-Object { $_ -notin $devicesList.SerialNumber }
 
 foreach ($missing in $missingDevices) {
+    $missingDevice = $labels[$missing];
     $devicesList += [PSCustomObject]@{
-        "Usb #" = $missing."Usb #"
-        "Device" = "N/A"
-        "Label" = $missing.Label
-        "Tags" = $missing.Tags
-        "SerialNumber" = $missing.SerialNumber
-        "IMEI" = $missing.Imei
-        "Ip" = "N/A"
+        "Usb #"         = $missingDevice."Usb #"
+        "Device"        = "N/A"
+        "Label"         = $missingDevice.Label
+        "Tags"          = $missingDevice.Tags
+        "SerialNumber"  = $missingDevice.SerialNumber
+        "IMEI"          = $missingDevice.IMEI
+        "Ip"            = "N/A"
+        "CPU"           = $missingDevice.CPU
+        "CPU Speed"     = $missingDevice."CPU Speed"
+        "Max CPU Speed" = $missingDevice."Max CPU Speed"
+        "CPU Cores"     = $missingDevice."CPU Cores"
+        "CPU Lookup"    = $missingDevice."CPU Lookup"
+        "GPU"           = $missingDevice."GPU"
     }
 }
 
