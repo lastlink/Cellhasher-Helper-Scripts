@@ -12,6 +12,7 @@ $devicesList = @()
 foreach ($device in $devices) {
     $serial = adb -s $device shell getprop ro.serialno
     $usbNumber = [int]$labels[$serial]."Usb #"
+    $rack = $labels[$serial]."Rack"
     $cpuDetails = $labels[$serial]."CPU"
     $maxCpuSpeedGHz = $labels[$serial]."Max CPU Speed"
     $cpuCores = $labels[$serial]."CPU Cores"
@@ -81,8 +82,8 @@ foreach ($device in $devices) {
     $filteredIPs = $filteredIPs -replace "`r`n", " " -replace "`n", " " -replace "`r", " "
     $filteredIPs = $filteredIPs.Trim()
 
-    $devicesList += [PSCustomObject]@{ "Usb #" = $usbNumber; "Device" = "scrcpy -s $device"; "Label" = "$name"; "Tags" = "$tags"; "SerialNumber" = "$serial"; "IMEI" = "$imei"; "Ip" = "$filteredIPs"; "CPU" = "$cpuDetails"; "CPU Speed" = "$cpuSpeedGHz"; "Max CPU Speed" = "$maxCpuSpeedGHz"; "CPU Cores" = "$cpuCores"; "CPU Lookup" = "$chipsetLookup"; "GPU" = "$gpuName" }
-    Write-Host "# $usbNumber | Device: $device | Name $name | Serial Number: $serial | IMEI: $imei"
+    $devicesList += [PSCustomObject]@{ "Rack" = $rack; "Usb #" = $usbNumber; "Device" = "scrcpy -s $device"; "Label" = "$name"; "Tags" = "$tags"; "SerialNumber" = "$serial"; "IMEI" = "$imei"; "Ip" = "$filteredIPs"; "CPU" = "$cpuDetails"; "CPU Speed" = "$cpuSpeedGHz"; "Max CPU Speed" = "$maxCpuSpeedGHz"; "CPU Cores" = "$cpuCores"; "CPU Lookup" = "$chipsetLookup"; "GPU" = "$gpuName" }
+    Write-Host "Rack: $rack | # $usbNumber | Device: $device | Name $name | Serial Number: $serial | IMEI: $imei"
 }
 
 # Find missing devices from CSV
@@ -91,6 +92,7 @@ $missingDevices = $labels.Keys | Where-Object { $_ -notin $devicesList.SerialNum
 foreach ($missing in $missingDevices) {
     $missingDevice = $labels[$missing];
     $devicesList += [PSCustomObject]@{
+        "Rack"         = $missingDevice."Rack"
         "Usb #"         = $missingDevice."Usb #"
         "Device"        = "N/A"
         "Label"         = $missingDevice.Label
