@@ -8,9 +8,12 @@ $appList = Get-Content ".\uninstall_packages.txt"
 foreach ($app in $appList) {
     $app_name = $app -replace "`r`n", " " -replace "`n", " " -replace "`r", " "
     # Loop through each device and send the dsiable command
+    $count = 0
     foreach ($device in $devices) {
-        Write-Host "Uninstalling app: $app_name on device: $device"
+        Write-Host "Uninstalling app: $app_name on device: i:$count $device"
         # Run the ADB uninstall command
         adb -s $device shell pm uninstall --user 0 $app_name
+
+        $count++
     }
 }
