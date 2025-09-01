@@ -7,11 +7,14 @@ $apkPaths = Get-ChildItem -Path "$apkFolderPath" -Recurse -Filter "*.apk" | Sele
 
 # $devices = @("xxx", "xx2")
 # Loop through each device and install all apks in the folder
+$count = 0
 foreach ($device in $devices) {
     foreach ($apkPath in $apkPaths) {
-        Write-Host "Installing apk:$apkPath on $device..."
+        Write-Host "Installing apk:$apkPath on i:$count $device..."
 
         adb -s $device install $apkPath
+
+        $count++
     }
 }
 

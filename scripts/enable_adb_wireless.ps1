@@ -2,12 +2,14 @@
 $devices = adb devices | Select-String "device$" | ForEach-Object { ($_ -split "\s+")[0] }
 
 # Loop through each device and enable wireless debugging
+$count = 0
 foreach ($device in $devices) {
-    Write-Host "Enabling wireless debugging on $device..."
+    Write-Host "Enabling wireless debugging on i:$count $device..."
     # termux ssh port
     adb -s $device forward tcp:8022 tcp:8022
     # will turn off on phone reset
     adb -s $device tcpip 5555
+    $count++
 }
 
 Write-Host "Wireless debugging enabled for all devices!"
