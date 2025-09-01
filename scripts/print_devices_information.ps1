@@ -2,7 +2,7 @@
 $devices = adb devices | Select-String "device$" | ForEach-Object { ($_ -split "\s+")[0] }
 
 $labels = @{}
-Import-Csv -Path ".\devices.csv" | ForEach-Object {
+Import-Csv -Path ".\scripts\devices.csv" | ForEach-Object {
     $labels[$_.SerialNumber] = $_
 }
 
@@ -99,7 +99,7 @@ foreach ($missing in $missingDevices) {
         "Tags"          = $missingDevice.Tags
         "SerialNumber"  = $missingDevice.SerialNumber
         "IMEI"          = $missingDevice.IMEI
-        "Ip"            = "N/A"
+        "Ip"            = $missingDevice."Ip"
         "CPU"           = $missingDevice.CPU
         "CPU Speed"     = $missingDevice."CPU Speed"
         "Max CPU Speed" = $missingDevice."Max CPU Speed"
@@ -109,12 +109,12 @@ foreach ($missing in $missingDevices) {
     }
 }
 
-$sortedDevices = $devicesList | Sort-Object -Property "Usb #"
+$sortedDevices = $devicesList | Sort-Object { [int]($_."Usb #") }
 $sortedDevices | Format-Table 
 
 Write-Host "Total Records: $($sortedDevices.Count)"
 $mhSpeed = 3.5
 Write-Host "Total Speed: $($sortedDevices.Count*$mhSpeed)"
 
-$sortedDevices | Export-Csv -Path ".\cellhasher_scripts\phone_labels2.csv" -NoTypeInformation -UseQuotes Never
+$sortedDevices | Export-Csv -Path ".\scripts\phone_labels2.csv" -NoTypeInformation -UseQuotes Never
 

@@ -8,8 +8,10 @@ $appList = Get-Content ".\disable_packages.txt"
 foreach ($app in $appList) {
     $app_name = $app -replace "`r`n", " " -replace "`n", " " -replace "`r", " "
     # Loop through each device and send the dsiable command
+    $count = 0
     foreach ($device in $devices) {
-        Write-Host "Disabling app: $app_name on device: $device"
+        Write-Host "Disabling app: $app_name on device: i:$count $device"
         adb -s $device shell pm disable-user --user 0 $app_name
+        $count++
     }
 }
